@@ -12,11 +12,9 @@ function StackRouter() {
   return (
     <Stack.Navigator
       initialRouteName="Home"
-      screenOptions={
-        {
-          // headerShown: false,
-        }
-      }>
+      screenOptions={{
+        headerShown: false,
+      }}>
       <Stack.Screen name="Home" component={Home} />
       <Stack.Screen name="Editor" component={Editor} />
     </Stack.Navigator>
