@@ -6,19 +6,20 @@ import {
   TouchableOpacity,
   LayoutChangeEvent,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
 import {NavigateProps} from '../../routes';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {CustomModal} from '../../components';
-import {Note} from './types';
+import {RootStackParamList} from '../../routes/types';
+import {useNotesStore} from '../../hooks/useNotesStore';
 
 export default function Editor() {
   const navigation = useNavigation<NavigateProps>();
-  const route = useRoute();
+  const route = useRoute<RouteProp<RootStackParamList, 'Editor'>>();
   const {noteIndex} = route.params;
+
+  const {getNoteByIndex, saveNotes} = useNotesStore();
 
   const [layoutHeight, setLayoutHeight] = useState(0);
   const [layoutWidth, setLayoutWidth] = useState(0);
@@ -27,19 +28,24 @@ export default function Editor() {
 
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
-  const [notes, setNotes] = useState<Note[] | []>([]);
 
   useEffect(() => {
     (async () => {
       try {
-        const jsonValue = await AsyncStorage.getItem('@notes');
-        return jsonValue != null ? setNotes(JSON.parse(jsonValue)) : null;
+        if (noteIndex || noteIndex === 0) {
+          const _note = await getNoteByIndex(noteIndex);
+          if (_note) {
+            setTitle(_note.title);
+            setNote(_note.note);
+          }
+        }
       } catch (e) {
         setModalText('Erro ao carregar nota');
         setModalVisible(true);
       }
     })();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteIndex]);
 
   const handleScrollContentLayout = (e: LayoutChangeEvent) => {
     const {height, width} = e.nativeEvent.layout;
@@ -47,28 +53,8 @@ export default function Editor() {
     setLayoutWidth(width);
   };
 
-  const storeData = async (value: Note[]) => {
-    try {
-      const jsonValue = JSON.stringify(value);
-      await AsyncStorage.setItem('@notes', jsonValue);
-    } catch (e) {
-      setModalText('Erro ao salvar nota');
-      setModalVisible(true);
-    }
-  };
-
   const goBackAndSaveNote = () => {
-    if (title !== '') {
-      const newNotes = [...notes];
-      newNotes.push({title, note});
-      storeData(newNotes);
-      navigation.goBack();
-      return;
-    }
-    if (note !== '') {
-      Alert.alert('Por favor insira um título.');
-      return;
-    }
+    saveNotes({title, note}, noteIndex);
     navigation.goBack();
   };
 
@@ -101,6 +87,7 @@ export default function Editor() {
           placeholderTextColor="#ad8b11"
           style={styles.title}
           onChangeText={onChangeTitle}
+          value={title}
         />
       </View>
       <View onLayout={handleScrollContentLayout} style={styles.notesContainer}>
@@ -114,6 +101,7 @@ export default function Editor() {
               width: layoutWidth,
             },
           ]}
+          value={note}
         />
       </View>
       <CustomModal

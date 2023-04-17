@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   View,
   SafeAreaView,
@@ -12,31 +12,28 @@ import Icon from 'react-native-vector-icons/Feather';
 import {NavigateProps} from '../../routes';
 
 import {CustomModal} from '../../components';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useNotesStore} from '../../hooks/useNotesStore';
 import {Note} from '../Editor/types';
 
 export default function Home() {
   const navigation = useNavigation<NavigateProps>();
+  const {deleteNote, getAllNotes} = useNotesStore();
+
   const [notes, setNotes] = useState<Note[] | []>([]);
   const [modalVisible, setModalVisible] = useState(false);
-
-  useFocusEffect(
-    useCallback(() => {
-      (async () => {
-        try {
-          const jsonValue = await AsyncStorage.getItem('@notes');
-          console.log({jsonValue});
-          return jsonValue != null ? setNotes(JSON.parse(jsonValue)) : null;
-        } catch (e) {
-          setModalVisible(true);
-        }
-      })();
-    }, []),
-  );
 
   const modalButtonAction = () => {
     setModalVisible(!modalVisible);
   };
+
+  useEffect(() => {
+    (async () => {
+      const allNotes = await getAllNotes();
+      console.log({allNotes});
+      setNotes(allNotes);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <SafeAreaView>
@@ -50,9 +47,27 @@ export default function Home() {
       </View>
       <FlatList
         data={notes}
-        renderItem={({item}) => {
-          console.log(item);
-          return <Text>{item.title}</Text>;
+        renderItem={({item, index}) => {
+          return (
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+              }}>
+              <TouchableOpacity
+                onPress={() => {
+                  navigation.navigate('Editor', {noteIndex: index});
+                }}>
+                <Text>{item.title}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  setNotes(await deleteNote(index));
+                }}>
+                <Text>excluir</Text>
+              </TouchableOpacity>
+            </View>
+          );
         }}
       />
       <CustomModal
