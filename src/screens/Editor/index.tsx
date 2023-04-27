@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   LayoutChangeEvent,
   StyleSheet,
+  BackHandler,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Feather';
 import {RouteProp, useNavigation, useRoute} from '@react-navigation/native';
@@ -28,6 +30,21 @@ export default function Editor() {
 
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
+
+  useEffect(() => {
+    const backAction = () => {
+      Alert.alert('Volte pelo botão ao lado esquerdo do título da nota');
+      return true;
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction,
+    );
+
+    return () => backHandler.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -53,8 +70,8 @@ export default function Editor() {
     setLayoutWidth(width);
   };
 
-  const goBackAndSaveNote = () => {
-    saveNotes({title, note}, noteIndex);
+  const goBackAndSaveNote = async () => {
+    await saveNotes({title, note}, noteIndex);
     navigation.goBack();
   };
 
